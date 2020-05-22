@@ -10,23 +10,11 @@
 #import <React/RCTBridge.h>
 #import <React/RCTEventDispatcher.h>
 
-static NSString* const ICLOUDSTORAGE_PREFIX = @"@com.manicakes.iCloudStorage/";
 static NSString* const ICLOUD_STORE_CHANGED = @"ICLOUD_STORE_CHANGED";
 static NSString* const kStoreChangedEvent = @"iCloudStoreDidChangeRemotely";
 static NSString* const kChangedKeys = @"changedKeys";
 
 @implementation iCloudStorage
-
-+ (NSString*)appendPrefixToKey:(NSString*)key {
-  return [NSString stringWithFormat:@"%@%@", ICLOUDSTORAGE_PREFIX, key];
-}
-
-+ (NSString*)removePrefixFromKey:(NSString*)key {
-  if (![key hasPrefix:ICLOUDSTORAGE_PREFIX]) {
-    return nil;
-  }
-  return [key substringFromIndex:[ICLOUDSTORAGE_PREFIX length]];
-}
 
 + (NSDictionary*)storeDictionary {
   NSUbiquitousKeyValueStore* store = [NSUbiquitousKeyValueStore defaultStore];
@@ -38,16 +26,16 @@ static NSString* const kChangedKeys = @"changedKeys";
 }
 
 + (id) getObjectForKey:(NSString*)key {
-  return [[NSUbiquitousKeyValueStore defaultStore] objectForKey:[iCloudStorage appendPrefixToKey:key]];
+  return [[NSUbiquitousKeyValueStore defaultStore] objectForKey:key];
 }
 
 + (void) setValue:(NSString*)value forKey:(NSString*)key {
-  [[NSUbiquitousKeyValueStore defaultStore] setObject:value forKey:[iCloudStorage appendPrefixToKey:key]];
+  [[NSUbiquitousKeyValueStore defaultStore] setObject:value forKey:key];
   [[NSUbiquitousKeyValueStore defaultStore] synchronize];
 }
 
 + (void) removeKey:(NSString*)key {
-  [[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:[iCloudStorage appendPrefixToKey:key]];
+  [[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
   [[NSUbiquitousKeyValueStore defaultStore] synchronize];
 }
 
@@ -141,10 +129,7 @@ static NSString* const kChangedKeys = @"changedKeys";
   NSArray* changedKeys = [[notification userInfo] objectForKey:NSUbiquitousKeyValueStoreChangedKeysKey];
   NSMutableArray* reportedChangedKeys = [NSMutableArray array];
   for (NSString* key in changedKeys) {
-    NSString* reportedKey = [iCloudStorage removePrefixFromKey:key];
-    if (reportedKey) {
-      [reportedChangedKeys addObject:reportedKey];
-    }
+      [reportedChangedKeys addObject:key];
   }
   
   if ([reportedChangedKeys count]) {
@@ -189,9 +174,7 @@ RCT_EXPORT_METHOD(mergeItem: (NSString*)key value: (NSString*)value resolver:(RC
 RCT_REMAP_METHOD(clear, clearResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject) {
   for (NSString* key in [iCloudStorage allKeysInStore]) {
-    if ([key hasPrefix:ICLOUDSTORAGE_PREFIX]) {
       [[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
-    }
   }
   
   resolve(@{});
@@ -201,8 +184,7 @@ RCT_REMAP_METHOD(getAllKeys, getAllKeysResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject) {
   NSMutableArray* allKeys = [NSMutableArray array];
   
-  for (NSString* storeKey in [iCloudStorage allKeysInStore]) {
-    NSString* key = [iCloudStorage removePrefixFromKey:storeKey];
+  for (NSString* key in [iCloudStorage allKeysInStore]) {
     if (key != nil) {
       [allKeys addObject:key];
     }
